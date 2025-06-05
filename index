@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>London Treasure Hunt</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link href="https://unpkg.com/maplibre-gl@3.6.1/dist/maplibre-gl.css" rel="stylesheet" />
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      width: 100%;
+      display: flex;
+      flex-direction: row;
+    }
+    #sidebar {
+      width: 30%;
+      min-width: 300px;
+      max-width: 400px;
+      padding: 1rem;
+      background: #111;
+      color: #eee;
+      font-family: sans-serif;
+      overflow-y: auto;
+      box-sizing: border-box;
+    }
+    #map {
+      width: 70%;
+      height: 100%;
+    }
+  </style>
+</head>
+<body>
+  <div id="sidebar">
+    <h2>London Treasure Hunt</h2>
+    <p id="story">You wake-up outside the Tower of London. You don't know why you are here and don't remember how you got here. In your pocket is a piece of paper. A message on the paper says:</p>
+    <blockquote>
+      "Two towers guard the Thames so blue,<br>
+      I lift my arms when ships pass through.<br>
+      My Gothic dress hides steel within,<br>
+      across the river bold and twin.<br>
+      Find me!"
+    </blockquote>
+  </div>
+  <div id="map"></div>
+
+  <script src="https://unpkg.com/maplibre-gl@3.6.1/dist/maplibre-gl.js"></script>
+  <script src="https://unpkg.com/@turf/turf@6.5.0/turf.min.js"></script>
+  <script>
+    const map = new maplibregl.Map({
+      container: 'map',
+      style: 'https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json',
+      center: [-0.0761, 51.5081], // Tower of London
+      zoom: 16
+    });
+
+    const player = new maplibregl.Marker({ color: 'red' })
+      .setLngLat([-0.0761, 51.5081])
+      .addTo(map);
+
+    let playerPos = [-0.0761, 51.5081];
+    const movementStep = 0.0005;
+
+    // Fog of War variables
+    const revealRadius = 0.1; // in kilometers
+    let revealedAreas = []; // Stores turf.js circle polygons
+    let fogLayerId = 'fog-of-war-layer';
+    let fogSourceId = 'fog-of-war-source';
+
+    map.on('load', () => {
+      // Create a polygon that covers the entire world (or your game area)
+      const worldPolygon = turf.polygon([
+        [
+          [-180, -90],
+          [-180, 90],
+          [180, 90],
+          [180, -90],
+          [-180, -90]
+        ]
+      ]);
+
+      map.addSource(fogSourceId, {
+        'type': 'geojson',
+        'data': worldPolygon // Initially, the entire world is covered
+      });
+
+      map.addLayer({
+        'id': fogLayerId,
+        'type': 'fill',
+        'source': fogSourceId,
+        'paint': {
+          'fill-color': '#000',
+          'fill-opacity': 0.9 // Dark fog
+        }
+      });
+
+      // Initial reveal
+      updateFogOfWar();
+    });
+
+    document.addEventListener('keydown', (e) => {
+      let moved = false;
+      if (e.key === 'ArrowUp') { playerPos[1] += movementStep; moved = true; }
+      if (e.key === 'ArrowDown') { playerPos[1] -= movementStep; moved = true; }
+      if (e.key === 'ArrowLeft') { playerPos[0] -= movementStep; moved = true; }
+      if (e.key === 'ArrowRight') { playerPos[0] += movementStep; moved = true; }
+
+      if (moved) {
+        player.setLngLat(playerPos);
+        map.setCenter(playerPos);
+        updateFogOfWar();
+        checkReveal();
+      }
+    });
+
+    function updateFogOfWar() {
+      const currentCircle = turf.circle(playerPos, revealRadius, { units: 'kilometers' });
+
+      // Add the current revealed circle to the list
+      revealedAreas.push(currentCircle);
+
+      // Union all revealed areas into a single polygon
+      let unitedRevealArea = revealedAreas[0];
+      for (let i = 1; i < revealedAreas.length; i++) {
+        unitedRevealArea = turf.union(unitedRevealArea, revealedAreas[i]);
+      }
+
+      // Calculate the inverse of the revealed area (the fog)
+      // This creates a polygon that covers the entire map EXCEPT the revealed area
+      const fogPolygon = turf.difference(turf.polygon([
+        [
+          [-180, -90],
+          [-180, 90],
+          [180, 90],
+          [180, -90],
+          [-180, -90]
+        ]
+      ]), unitedRevealArea);
+
+      // Update the fog source data
+      if (map.getSource(fogSourceId)) {
+        map.getSource(fogSourceId).setData(fogPolygon);
+      }
+    }
+
+
+    // Tower Bridge area for clue
+    const towerBridgeBounds = [
+      [-0.076685, 51.504334],
+      [-0.073853, 51.506952]
+    ];
+
+    function checkReveal() {
+      const [lng, lat] = playerPos;
+      if (lng > towerBridgeBounds[0][0] && lng < towerBridgeBounds[1][0] &&
+          lat > towerBridgeBounds[0][1] && lat < towerBridgeBounds[1][1]) {
+        document.getElementById('story').innerText = 'You have found the location! Another clue reads:';
+        document.querySelector('blockquote').innerHTML = `
+          "Four bronze cats guard my central spire,<br>
+          where Nelson stands above the fire.<br>
+          My fountains dance while lions watch,<br>
+          and pigeons once made quite a blotch.<br>
+          Where am I?"`;
+      }
+    }
+  </script>
+</body>
+</html>
