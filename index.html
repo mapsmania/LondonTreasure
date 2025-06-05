@@ -29,19 +29,34 @@
       width: 70%;
       height: 100%;
     }
+
+      .clue-box {
+  background-color: #fff;
+  color: #000;
+  padding: 1rem;
+  margin-top: 1rem;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+  font-family: 'Georgia', serif;
+  line-height: 1.5;
+}
+
   </style>
 </head>
 <body>
   <div id="sidebar">
     <h2>London Treasure Hunt</h2>
     <p id="story">You wake-up outside the Tower of London. You don't know why you are here and don't remember how you got here. In your pocket is a piece of paper. A message on the paper says:</p>
-    <blockquote>
-      "Two towers guard the Thames so blue,<br>
-      I lift my arms when ships pass through.<br>
-      My Gothic dress hides steel within,<br>
-      across the river bold and twin.<br>
-      Find me!"
-    </blockquote>
+   <div class="clue-box">
+  <p>
+    "Two towers guard the Thames so blue,<br>
+    I lift my arms when ships pass through.<br>
+    My Gothic dress hides steel within,<br>
+    across the river bold and twin.<br>
+    Find me!"
+  </p>
+</div>
+
   </div>
   <div id="map"></div>
 
@@ -156,12 +171,16 @@
       if (lng > towerBridgeBounds[0][0] && lng < towerBridgeBounds[1][0] &&
           lat > towerBridgeBounds[0][1] && lat < towerBridgeBounds[1][1]) {
         document.getElementById('story').innerText = 'You have found the location! Another clue reads:';
-        document.querySelector('blockquote').innerHTML = `
-          "Four bronze cats guard my central spire,<br>
-          where Nelson stands above the fire.<br>
-          My fountains dance while lions watch,<br>
-          and pigeons once made quite a blotch.<br>
-          Where am I?"`;
+        document.querySelector('.clue-box').innerHTML = `
+  <p>
+    "Four bronze cats guard my central spire,<br>
+    where Nelson stands above the fire.<br>
+    My fountains dance while lions watch,<br>
+    and pigeons once made quite a blotch.<br>
+    Where am I?"
+  </p>
+`;
+
       }
     }
   </script>
